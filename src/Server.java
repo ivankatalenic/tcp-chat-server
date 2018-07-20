@@ -1,15 +1,11 @@
 import java.net.Socket;
 import java.util.Scanner;
 import java.net.ServerSocket;
-import java.net.InetSocketAddress;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
 
 public class Server {
-	
-	private static final int INPUT_BUFFER = 1024;
 
 	public Server() {
 		// TODO Auto-generated constructor stub
