@@ -1,67 +1,81 @@
 import java.net.Socket;
-import java.util.Scanner;
+import java.net.SocketException;
+import javax.swing.SwingUtilities;
 import java.net.ServerSocket;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 
-public class Server {
+public class Server extends Thread {
+	
+	private int port;
+	private GUI gui;
+	private Socket client;
+	private ServerSocket s;
 
-	public Server() {
-		// TODO Auto-generated constructor stub
+	public Server(GUI gui) {
+		this.gui = gui;
+	}
+	
+	public void open(int port) {
+		this.port = port;
+		this.start();
+	}
+	
+	@Override
+	public void run() {
+		try {
+			s = new ServerSocket(port);
+			
+			gui.addMessage("INFO", "Waiting for client to connect!");
+			client = s.accept();
+			gui.addMessage("INFO", "Client connected from " + client.getInetAddress());
+			gui.sendButton.setEnabled(true);
+			
+			DisplayIncomming print = new DisplayIncomming(client.getInputStream(), gui);
+			print.start();
+			print.join();
+		} catch (SocketException se) {
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void close() {
+		try {
+			if (client != null && client.isConnected()) {
+				client.close();
+			}
+			s.close();
+		} catch (IOException e) {
+			gui.addMessage("ERROR", "Can not close the server!");
+		}
 	}
 
 	public static void main(String[] args) {
-		final int port = 777;
-
+		
 		try {
-			ServerSocket s = new ServerSocket(port);
-
-			boolean ret = true;
-			while (ret) {
-				System.out.println("Waiting for client to connect!");
-				Socket client = s.accept();
-				System.out.println("Connected from: " + client.getInetAddress());
-
-				ret = serve(client);
-			}
-
-			s.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private static boolean serve(Socket client) throws IOException {
-		
-		OutputStream clientOutputStream = client.getOutputStream();
-		InputStream clientInputStream = client.getInputStream();
-		
-		clientOutputStream.write("Welcome!\n".getBytes());
-		clientOutputStream.flush();
-		
-		DisplayIncomming print = new DisplayIncomming(clientInputStream);
-		print.start();
-		
-		try (Scanner sc = new Scanner(System.in)) {
-			while (sc.hasNext()) {
-				String msgToClient = sc.nextLine();
-				if (msgToClient.equals("end")) {
-					break;
+			SwingUtilities.invokeAndWait(new Runnable() {
+				@Override
+				public void run() {
+					GUI gui = new GUI();
+					gui.setVisible(true);
 				}
-				clientOutputStream.write(msgToClient.getBytes());
-				clientOutputStream.write('\n');
-				clientOutputStream.flush();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			print.interrupt();
-			return true;
+			});
+		} catch (InvocationTargetException | InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return;
 		}
-
-		client.close();
-
-		return true;
 	}
-
+	
+	public void sendMessage(String msg) {
+		try {
+			client.getOutputStream().write(msg.getBytes());
+			client.getOutputStream().flush();
+		} catch (IOException e) {
+			gui.addMessage("WARNING", "Client has closed the connection!");
+			close();
+		}
+	}
 }
