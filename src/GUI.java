@@ -4,10 +4,14 @@ import javax.swing.*;
 public class GUI extends JFrame {
 	
 	private static final long serialVersionUID = 1L;
+	
 	private JTextField messageField;
 	private JTextArea chatHistoryArea;
 	private Server server;
 	public JButton sendButton;
+	private JTextField portField;
+	private JButton openServerButton;
+	private JButton closeServerButton;
 
 	public void setServer(Server server) {
 		this.server = server;
@@ -28,15 +32,16 @@ public class GUI extends JFrame {
 		JLabel portLabel = new JLabel("Server Port:");
 		northPanel.add(portLabel);
 		
-		JTextField portField = new JTextField();
+		portField = new JTextField();
 		portField.setColumns(5);
 		northPanel.add(portField);
 		
-		JButton openServerButton = new JButton("Open");
+		openServerButton = new JButton("Open");
 		northPanel.add(openServerButton);
 		
-		JButton closeServerButton = new JButton("Close");
+		closeServerButton = new JButton("Close");
 		northPanel.add(closeServerButton);
+		closeServerButton.setEnabled(false);
 		
 		chatHistoryArea = new JTextArea();
 		chatHistoryArea.setEditable(false);
@@ -73,23 +78,39 @@ public class GUI extends JFrame {
 				openServerButton.setEnabled(false);
 				server = new Server(this);
 				server.open(port);
+				closeServerButton.setEnabled(true);
 			}
 		});
 		closeServerButton.addActionListener((eventObject) -> {
-			server.close();
-			openServerButton.setEnabled(true);
+			closeServerButton.setEnabled(false);
 			sendButton.setEnabled(false);
+			
+			server.setRunning(false);
+			server.close();
+			
 			addMessage("INFO", "Server closed!");
+			
+			openServerButton.setEnabled(true);
 		});
 		sendButton.addActionListener((eventObject) -> {
-			addMessage("Server", messageField.getText());
-			server.sendMessage(messageField.getText());
+			if (server.sendMessage(messageField.getText())) {
+				addMessage("Server", messageField.getText());
+			}
 		});
 	}
 	
 	public void addMessage(String author, String msg) {
 		SwingUtilities.invokeLater(() -> {
-			chatHistoryArea.append(author + ": " + msg + "\n");
+			String printMsg;
+			switch (author) {
+			case "Client": case "Server":
+				printMsg = author + ": " + msg + "\n";
+				break;
+			default:
+				printMsg = "### " + author + ": " + msg + "\n";
+				break;
+			}
+			chatHistoryArea.append(printMsg);
 		});
 	}
 }

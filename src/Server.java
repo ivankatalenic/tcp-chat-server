@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 
 public class Server extends Thread {
 	
+	boolean running = true;
 	private int port;
 	private GUI gui;
 	private Socket client;
@@ -21,19 +22,46 @@ public class Server extends Thread {
 		this.start();
 	}
 	
+	public boolean isRunning() {
+		return running;
+	}
+
+	public void setRunning(boolean running) {
+		this.running = running;
+	}
+	
 	@Override
 	public void run() {
 		try {
 			s = new ServerSocket(port);
 			
-			gui.addMessage("INFO", "Waiting for client to connect!");
-			client = s.accept();
-			gui.addMessage("INFO", "Client connected from " + client.getInetAddress());
-			gui.sendButton.setEnabled(true);
+			while (isRunning()) {
+				gui.addMessage("INFO", "Waiting for client to connect!");
+				
+				client = s.accept();
+				
+				gui.addMessage("INFO", "Client connected from " + client.getInetAddress());
+				gui.sendButton.setEnabled(true);
+				
+				IncommingMessageHandler print;
+				try {
+					print = new IncommingMessageHandler(client, gui);
+					print.start();
+					print.join();
+				} catch (IOException e) {
+					gui.addMessage("ERROR", "Client has abruptly disconnected!");
+					try {
+						client.close();
+					} catch (IOException e1) {
+						// This triggers if socket cannot be closed.
+						// Can't do anything meaningful then.
+					}
+				} catch (Exception other) {
+					// Other errors about thread that shouldn't ever happen.
+					System.exit(-1);
+				}
+			}
 			
-			DisplayIncomming print = new DisplayIncomming(client.getInputStream(), gui);
-			print.start();
-			print.join();
 		} catch (SocketException se) {
 			
 		} catch (Exception e) {
@@ -53,29 +81,34 @@ public class Server extends Thread {
 	}
 
 	public static void main(String[] args) {
-		
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				@Override
 				public void run() {
-					GUI gui = new GUI();
-					gui.setVisible(true);
+					new GUI();
 				}
 			});
 		} catch (InvocationTargetException | InterruptedException e1) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			return;
+			System.exit(-1);
 		}
 	}
 	
-	public void sendMessage(String msg) {
+	public boolean sendMessage(String msg) {
 		try {
 			client.getOutputStream().write(msg.getBytes());
 			client.getOutputStream().flush();
+			return true;
 		} catch (IOException e) {
 			gui.addMessage("WARNING", "Client has closed the connection!");
+			try {
+				client.close();
+			} catch (IOException e1) {
+				// This triggers if socket cannot be closed.
+				// Can't do anything meaningful then.
+			}
 			close();
+			return false;
 		}
 	}
 }
