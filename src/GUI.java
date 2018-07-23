@@ -5,16 +5,22 @@ public class GUI extends JFrame {
 	
 	private static final long serialVersionUID = 1L;
 	
-	private JTextField messageField;
-	private JTextArea chatHistoryArea;
-	private Server server;
-	public JButton sendButton;
-	private JTextField portField;
-	private JButton openServerButton;
-	private JButton closeServerButton;
+	Server server = null;
+	MessageDistributer msgDist = null;
+	
+	JTextField messageField;
+	JTextArea chatHistoryArea;
+	JButton sendButton;
+	JTextField portField;
+	JButton openServerButton;
+	JButton closeServerButton;
 
 	public void setServer(Server server) {
 		this.server = server;
+	}
+
+	public void setMsgDist(MessageDistributer msgDist) {
+		this.msgDist = msgDist;
 	}
 
 	public GUI() {
@@ -79,8 +85,11 @@ public class GUI extends JFrame {
 				server = new Server(this);
 				server.open(port);
 				closeServerButton.setEnabled(true);
+				
+				sendButton.setEnabled(true);
 			}
 		});
+		
 		closeServerButton.addActionListener((eventObject) -> {
 			closeServerButton.setEnabled(false);
 			sendButton.setEnabled(false);
@@ -88,29 +97,38 @@ public class GUI extends JFrame {
 			server.setRunning(false);
 			server.close();
 			
-			addMessage("INFO", "Server closed!");
-			
 			openServerButton.setEnabled(true);
 		});
+		
 		sendButton.addActionListener((eventObject) -> {
-			if (server.sendMessage(messageField.getText())) {
-				addMessage("Server", messageField.getText());
+			if (msgDist != null) {
+				try {
+					msgDist.putMessage("SERVER", messageField.getText());
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+				}
 			}
 		});
 	}
 	
-	public void addMessage(String author, String msg) {
+	public void addMessage(String msg) {
 		SwingUtilities.invokeLater(() -> {
-			String printMsg;
-			switch (author) {
-			case "Client": case "Server":
-				printMsg = author + ": " + msg + "\n";
-				break;
-			default:
-				printMsg = "### " + author + ": " + msg + "\n";
-				break;
-			}
-			chatHistoryArea.append(printMsg);
+			chatHistoryArea.append(msg + "\n");
 		});
+	}
+	
+	public void addMessage(String author, String msg) {
+		String printMsg;
+		
+		switch (author) {
+		case "Client": case "Server":
+			printMsg = author + ": " + msg;
+			break;
+		default:
+			printMsg = "### " + author + ": " + msg;
+			break;
+		}
+		
+		addMessage(printMsg);
 	}
 }

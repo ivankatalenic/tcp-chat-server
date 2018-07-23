@@ -1,27 +1,45 @@
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import javax.swing.SwingUtilities;
+
 import java.net.ServerSocket;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 public class Server extends Thread {
-	
+
+	final int INIT_CLIENT_SET_SIZE = 10;
+
+	MessageDistributer msgDist;
+	ConcurrentHashMap<String, String> nameToIP;
+	Set<Socket> connectedClients;
+
 	boolean running = true;
-	private int port;
-	private GUI gui;
-	private Socket client;
-	private ServerSocket s;
+	int port;
+	GUI gui;
+	Socket client;
+	ServerSocket server;
 
 	public Server(GUI gui) {
 		this.gui = gui;
+		nameToIP = new ConcurrentHashMap<>(INIT_CLIENT_SET_SIZE);
+		nameToIP.put("SERVER", "SERVER");
+		connectedClients = Collections.synchronizedSet(new HashSet<Socket>(INIT_CLIENT_SET_SIZE));
 	}
-	
+
 	public void open(int port) {
 		this.port = port;
 		this.start();
+		msgDist = new MessageDistributer(this, gui);
+		msgDist.start();
+		gui.setMsgDist(msgDist);
 	}
-	
+
 	public boolean isRunning() {
 		return running;
 	}
@@ -29,55 +47,61 @@ public class Server extends Thread {
 	public void setRunning(boolean running) {
 		this.running = running;
 	}
-	
+
 	@Override
 	public void run() {
 		try {
-			s = new ServerSocket(port);
-			
+			server = new ServerSocket(port);
+
 			while (isRunning()) {
-				gui.addMessage("INFO", "Waiting for client to connect!");
-				
-				client = s.accept();
-				
-				gui.addMessage("INFO", "Client connected from " + client.getInetAddress());
-				gui.sendButton.setEnabled(true);
-				
-				IncommingMessageHandler print;
 				try {
-					print = new IncommingMessageHandler(client, gui);
-					print.start();
-					print.join();
-				} catch (IOException e) {
-					gui.addMessage("ERROR", "Client has abruptly disconnected!");
-					try {
-						client.close();
-					} catch (IOException e1) {
-						// This triggers if socket cannot be closed.
-						// Can't do anything meaningful then.
-					}
-				} catch (Exception other) {
-					// Other errors about thread that shouldn't ever happen.
+					client = server.accept();
+				} catch (IOException io) {
+					// This happens when GUI decides to close the server.
+					// TODO What to do with running MessageDistributer thread which has reference to this class?
+					return;
+				} catch (Exception e) {
+					e.printStackTrace();
 					System.exit(-1);
 				}
+				
+				new ClientHandler(this, client, gui, msgDist).start();
+
+				gui.sendButton.setEnabled(true);
 			}
-			
+
 		} catch (SocketException se) {
-			
+			// TODO Print appropriate error message!
+			System.exit(-1);
 		} catch (Exception e) {
-			e.printStackTrace();
+			// TODO Print appropriate error message!
+			System.exit(-1);
 		}
 	}
-	
+
 	public void close() {
-		try {
-			if (client != null && client.isConnected()) {
+		for (Socket client : connectedClients) {
+			try {
 				client.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
 			}
-			s.close();
+		}
+		try {
+			msgDist.interrupt();
+			try {
+				msgDist.join();
+			} catch (InterruptedException e) {
+				// TODO Print appropriate error message!
+				System.exit(-1);
+			}
+			server.close();
 		} catch (IOException e) {
 			gui.addMessage("ERROR", "Can not close the server!");
+			System.exit(-1);
 		}
+		
+		gui.addMessage("INFO", "Server has been closed!");
 	}
 
 	public static void main(String[] args) {
@@ -91,24 +115,6 @@ public class Server extends Thread {
 		} catch (InvocationTargetException | InterruptedException e1) {
 			// TODO Auto-generated catch block
 			System.exit(-1);
-		}
-	}
-	
-	public boolean sendMessage(String msg) {
-		try {
-			client.getOutputStream().write(msg.getBytes());
-			client.getOutputStream().flush();
-			return true;
-		} catch (IOException e) {
-			gui.addMessage("WARNING", "Client has closed the connection!");
-			try {
-				client.close();
-			} catch (IOException e1) {
-				// This triggers if socket cannot be closed.
-				// Can't do anything meaningful then.
-			}
-			close();
-			return false;
 		}
 	}
 }
