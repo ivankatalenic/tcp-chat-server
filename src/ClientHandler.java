@@ -19,6 +19,19 @@ public class ClientHandler extends Thread {
 		this.gui = gui;
 		this.msgDist = msgDist;
 	}
+	
+	public static String checkUsername(String username) {
+		String newUsername;
+		switch (username) {
+		case "SERVER": case "ERROR": case "WARNING": case "INFO":
+			newUsername = "\"" + username + "\"";
+			break;
+		default:
+			newUsername = username;
+			break;
+		}
+		return newUsername;
+	}
 
 	@Override
 	public void run() {
@@ -30,7 +43,7 @@ public class ClientHandler extends Thread {
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 			}
-			gui.addMessage("INFO", "Client has failed to properly connect!");
+			gui.addMessage(Message.construct("INFO", "Client has failed to properly connect!"));
 			return;
 		}
 		
@@ -44,7 +57,7 @@ public class ClientHandler extends Thread {
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 			}
-			gui.addMessage("INFO", "Client has failed to properly connect!");
+			gui.addMessage(Message.construct("INFO", "Client has failed to properly connect!"));
 			return;
 		} catch (Exception other) {
 			// TODO Print appropriate error message!
@@ -52,14 +65,14 @@ public class ClientHandler extends Thread {
 		}
 		
 		server.connectedClients.add(client);
-		server.nameToIP.put(client.getInetAddress().toString(), msg);
+		server.nameToIP.put(client.getInetAddress().toString(), checkUsername(msg));
 		try {
 			msgDist.putMessage("SERVER", server.nameToIP.get(client.getInetAddress().toString()) + " has connected to chat server!");
 		} catch (InterruptedException e3) {
 			// TODO Auto-generated catch block
 		}
 		
-		gui.addMessage("INFO", "Client " + server.nameToIP.get(client.getInetAddress().toString()) + " has connected from " + client.getInetAddress());
+		gui.addMessage(Message.construct("INFO", "Client " + server.nameToIP.get(client.getInetAddress().toString()) + " has connected from " + client.getInetAddress()));
 		
 		while (true) {
 			try {

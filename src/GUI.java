@@ -1,4 +1,7 @@
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+
 import javax.swing.*;
 
 public class GUI extends JFrame {
@@ -74,7 +77,7 @@ public class GUI extends JFrame {
 			try {
 				port = Integer.parseInt(portField.getText());
 			} catch (NumberFormatException e) {
-				addMessage("ERROR", "Please enter valid port!");
+				addMessage(Message.construct("ERROR", "Please enter valid port!"));
 				validPort = false;
 			}
 			if (validPort && (port < 1 || port > 65535)) {
@@ -104,10 +107,32 @@ public class GUI extends JFrame {
 			if (msgDist != null) {
 				try {
 					msgDist.putMessage("SERVER", messageField.getText());
-				} catch (InterruptedException e) {
+					messageField.setText("");
+				} catch (InterruptedException ie) {
 					// TODO Auto-generated catch block
+					ie.printStackTrace();
 				}
 			}
+		});
+		
+		// Key bindings
+		messageField.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "enterPressed");
+		messageField.getActionMap().put("enterPressed", new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (msgDist != null) {
+					try {
+						msgDist.putMessage("SERVER", messageField.getText());
+						messageField.setText("");
+					} catch (InterruptedException ie) {
+						// TODO Auto-generated catch block
+						ie.printStackTrace();
+					}
+				}
+			}
+			
 		});
 	}
 	
@@ -115,20 +140,5 @@ public class GUI extends JFrame {
 		SwingUtilities.invokeLater(() -> {
 			chatHistoryArea.append(msg + "\n");
 		});
-	}
-	
-	public void addMessage(String author, String msg) {
-		String printMsg;
-		
-		switch (author) {
-		case "Client": case "Server":
-			printMsg = author + ": " + msg;
-			break;
-		default:
-			printMsg = "### " + author + ": " + msg;
-			break;
-		}
-		
-		addMessage(printMsg);
 	}
 }

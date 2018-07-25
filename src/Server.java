@@ -6,6 +6,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 
 import java.net.ServerSocket;
 import java.io.IOException;
@@ -97,14 +99,26 @@ public class Server extends Thread {
 			}
 			server.close();
 		} catch (IOException e) {
-			gui.addMessage("ERROR", "Can not close the server!");
+			gui.addMessage(Message.construct("ERROR", "Can not close the server!"));
 			System.exit(-1);
 		}
 		
-		gui.addMessage("INFO", "Server has been closed!");
+		gui.addMessage(Message.construct("INFO", "Server has been closed!"));
 	}
 
 	public static void main(String[] args) {
+		// Setting Nimbus Look&Feel.
+		try {
+		    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+		        if ("Nimbus".equals(info.getName())) {
+		            UIManager.setLookAndFeel(info.getClassName());
+		            break;
+		        }
+		    }
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				@Override
