@@ -25,7 +25,8 @@ public class Server extends Thread {
 	MessageDistributer msgDist;
 	Set<Socket> connectedClients;
 
-	boolean running = true;
+	boolean running = false;
+	boolean open = false;
 	int port;
 
 	GUI gui;
@@ -50,13 +51,15 @@ public class Server extends Thread {
 	 */
 	public void open(int port) {
 		this.port = port;
-
+		
 		start();
 
 		msgDist = new MessageDistributer(this, gui);
 		msgDist.start();
 
 		gui.setMessageDistributer(msgDist);
+		
+		setOpen(true);
 	}
 
 	public boolean isRunning() {
@@ -67,8 +70,19 @@ public class Server extends Thread {
 		this.running = running;
 	}
 
+	public boolean isOpen() {
+		return open;
+	}
+
+	public void setOpen(boolean open) {
+		this.open = open;
+	}
+
 	@Override
 	public void run() {
+		setRunning(true);
+		gui.addMessage(Message.construct("INFO", "Server has been started!"));
+		
 		try {
 			server = new ServerSocket(port);
 		} catch (SocketException se) {
@@ -84,6 +98,8 @@ public class Server extends Thread {
 
 			return;
 		}
+		
+		gui.sendButton.setEnabled(true);
 
 		while (isRunning()) {
 			try {
@@ -93,14 +109,12 @@ public class Server extends Thread {
 				
 				continue;
 			} catch (Exception e) {
-				gui.addMessage(Message.construct("ERROR", "Can not accept the client due to unknow error."));
-				
-				continue;
+				gui.addMessage(Message.construct("WARNING", "Server can not accept new clients anymore!"));
+				setRunning(false);
+				break;
 			}
 
 			new ClientHandler(this, client, gui, msgDist).start();
-
-			gui.sendButton.setEnabled(true);
 		}
 	}
 
@@ -113,6 +127,8 @@ public class Server extends Thread {
 		} catch (InterruptedException e1) {
 			
 		}
+		
+		setRunning(false);
 		
 		try {
 			Thread.sleep(250);
@@ -142,6 +158,8 @@ public class Server extends Thread {
 		} catch (IOException e) {
 			gui.addMessage(Message.construct("WARNING", "An unknown error occured while closing main server socket!"));
 		}
+		
+		setOpen(false);
 
 		gui.addMessage(Message.construct("INFO", "Server has been closed!"));
 	}

@@ -53,19 +53,23 @@ public class GUI extends JFrame {
 		northPanel.add(closeServerButton);
 		closeServerButton.setEnabled(false);
 		
+		// Main chat
 		chatHistoryArea = new JTextArea();
 		chatHistoryArea.setEditable(false);
+		chatHistoryArea.setLineWrap(true);
+		chatHistoryArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
 		JScrollPane messageScrollPane = new JScrollPane(chatHistoryArea);
 		add(messageScrollPane, BorderLayout.CENTER);
 		
 		JPanel southPanel = new JPanel();
 		panel.add(southPanel, BorderLayout.SOUTH);
 		
+		// User message
 		southPanel.add(new JLabel("Message:"));
 		JPanel messageFieldPanel = new JPanel();
 		southPanel.add(messageFieldPanel);
 		
-		messageField = new JTextField(20);
+		messageField = new JTextField(25);
 		messageFieldPanel.add(messageField);
 		sendButton = new JButton("Send");
 		sendButton.setEnabled(false);
@@ -101,17 +105,21 @@ public class GUI extends JFrame {
 			closeServerButton.setEnabled(false);
 			sendButton.setEnabled(false);
 			
-			server.setRunning(false);
 			server.close();
 			
 			openServerButton.setEnabled(true);
+			
+			portField.requestFocusInWindow();
 		});
 		
 		sendButton.addActionListener((eventObject) -> {
 			if (msgDist != null) {
 				try {
-					msgDist.putMessage("SERVER", messageField.getText());
-					messageField.setText("");
+					String msg = messageField.getText();
+					if (msg.length() > 0) {
+						msgDist.putMessage("SERVER", msg);
+						messageField.setText("");
+					}
 				} catch (InterruptedException ie) {
 					// TODO Auto-generated catch block
 					ie.printStackTrace();
@@ -133,6 +141,39 @@ public class GUI extends JFrame {
 					} catch (InterruptedException ie) {
 						// TODO Auto-generated catch block
 						ie.printStackTrace();
+					}
+				}
+			}
+			
+		});
+		
+		portField.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "enterPressed");
+		GUI secondThis = this;
+		portField.getActionMap().put("enterPressed", new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (server == null || !server.isOpen()) {
+					boolean validPort = true;
+					int port = -1;
+					try {
+						port = Integer.parseInt(portField.getText());
+					} catch (NumberFormatException ef) {
+						addMessage(Message.construct("ERROR", "Please enter valid port!"));
+						validPort = false;
+					}
+					if (validPort && (port < 1 || port > 65535)) {
+						validPort = false;
+					}
+					if (validPort) {
+						openServerButton.setEnabled(false);
+						server = new Server(secondThis);
+						server.open(port);
+						closeServerButton.setEnabled(true);
+						
+						sendButton.setEnabled(true);
+						messageField.requestFocusInWindow();
 					}
 				}
 			}
