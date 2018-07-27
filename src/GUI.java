@@ -3,6 +3,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 
 import javax.swing.*;
+import javax.swing.text.DefaultCaret;
 
 public class GUI extends JFrame {
 	
@@ -22,12 +23,12 @@ public class GUI extends JFrame {
 		this.server = server;
 	}
 
-	public void setMsgDist(MessageDistributer msgDist) {
+	public void setMessageDistributer(MessageDistributer msgDist) {
 		this.msgDist = msgDist;
 	}
 
 	public GUI() {
-		setTitle("Simple TCP Chat Server");
+		setTitle("Simple Chat Server");
 		setSize(500, 250);
 		setVisible(true);
 		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -69,6 +70,9 @@ public class GUI extends JFrame {
 		sendButton = new JButton("Send");
 		sendButton.setEnabled(false);
 		messageFieldPanel.add(sendButton);
+		
+		DefaultCaret caret = (DefaultCaret) chatHistoryArea.getCaret();
+		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		
 		// Events listeners
 		openServerButton.addActionListener((eventObject) -> {

@@ -7,7 +7,7 @@ import java.util.concurrent.BlockingQueue;
 
 public class MessageDistributer extends Thread {
 
-	final int MSG_QUEUE_SIZE = 500;
+	static final int MSG_QUEUE_SIZE = 500;
 
 	BlockingQueue<String> msgQueue;
 	Server server;
@@ -19,8 +19,8 @@ public class MessageDistributer extends Thread {
 		msgQueue = new ArrayBlockingQueue<>(MSG_QUEUE_SIZE);
 	}
 
-	public void putMessage(String authorID, String msg) throws InterruptedException {
-		putMessage(Message.construct(server.nameToIP.get(authorID), msg));
+	public void putMessage(String author, String msg) throws InterruptedException {
+		putMessage(Message.construct(author, msg));
 	}
 
 	public void putMessage(String msg) throws InterruptedException {
