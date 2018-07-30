@@ -80,24 +80,36 @@ public class GUI extends JFrame {
 		
 		// Events listeners
 		openServerButton.addActionListener((eventObject) -> {
-			boolean validPort = true;
+			boolean portParsedCorrectly = true;
+			boolean portValidRange = true;
+			
 			int port = -1;
+			
 			try {
 				port = Integer.parseInt(portField.getText());
 			} catch (NumberFormatException e) {
-				addMessage(Message.construct("ERROR", "Please enter valid port!"));
-				validPort = false;
+				portParsedCorrectly = false;
 			}
-			if (validPort && (port < 1 || port > 65535)) {
-				validPort = false;
+			
+			if (portParsedCorrectly) {
+				if (port > 0 && port < 65536) {
+					portValidRange = true;
+				}
 			}
-			if (validPort) {
+			
+			if (portParsedCorrectly && portValidRange) {
 				openServerButton.setEnabled(false);
+				
 				server = new Server(this);
 				server.open(port);
-				closeServerButton.setEnabled(true);
 				
+				closeServerButton.setEnabled(true);
 				sendButton.setEnabled(true);
+				
+				messageField.requestFocusInWindow();
+			} else {
+				addMessage(Message.construct("ERROR", "Please enter valid port!"));
+				portField.setText("");
 			}
 		});
 		
@@ -106,6 +118,7 @@ public class GUI extends JFrame {
 			sendButton.setEnabled(false);
 			
 			server.close();
+			server = null;
 			
 			openServerButton.setEnabled(true);
 			
@@ -155,25 +168,36 @@ public class GUI extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (server == null || !server.isOpen()) {
-					boolean validPort = true;
+					boolean portParsedCorrectly = true;
+					boolean portValidRange = true;
+					
 					int port = -1;
+					
 					try {
 						port = Integer.parseInt(portField.getText());
-					} catch (NumberFormatException ef) {
-						addMessage(Message.construct("ERROR", "Please enter valid port!"));
-						validPort = false;
+					} catch (NumberFormatException e1) {
+						portParsedCorrectly = false;
 					}
-					if (validPort && (port < 1 || port > 65535)) {
-						validPort = false;
+					
+					if (portParsedCorrectly) {
+						if (port > 0 && port < 65536) {
+							portValidRange = true;
+						}
 					}
-					if (validPort) {
+					
+					if (portParsedCorrectly && portValidRange) {
 						openServerButton.setEnabled(false);
+						
 						server = new Server(secondThis);
 						server.open(port);
-						closeServerButton.setEnabled(true);
 						
+						closeServerButton.setEnabled(true);
 						sendButton.setEnabled(true);
+						
 						messageField.requestFocusInWindow();
+					} else {
+						addMessage(Message.construct("ERROR", "Please enter valid port!"));
+						portField.setText("");
 					}
 				}
 			}

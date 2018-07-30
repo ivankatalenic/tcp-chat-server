@@ -1,22 +1,25 @@
+import java.io.IOException;
+
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.ServerSocket;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
-import java.net.ServerSocket;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 /**
  * Class used for connecting clients.
  * 
  * @author Ivan Katalenić
- *
  */
 public class Server extends Thread {
 
@@ -24,9 +27,14 @@ public class Server extends Thread {
 
 	MessageDistributer msgDist;
 	Set<Socket> connectedClients;
+	Set<String> clientUsernames;
+	
+	BlockingQueue<Object> stopQueue;
 
 	boolean running = false;
 	boolean open = false;
+	boolean stopping = false;
+	
 	int port;
 
 	GUI gui;
@@ -40,17 +48,24 @@ public class Server extends Thread {
 	 */
 	public Server(GUI gui) {
 		this.gui = gui;
-
-		connectedClients = Collections.synchronizedSet(new HashSet<Socket>(INIT_CLIENT_SET_SIZE));
 	}
 
 	/**
 	 * Opens the server with provided port.
 	 * 
 	 * @param port Port on which the server is listening for connections.
+	 * 
+	 * @throws IllegalArgumentException If the port is not in the valid range [0 - 65535].
 	 */
 	public void open(int port) {
 		this.port = port;
+		
+		connectedClients = Collections.synchronizedSet(new HashSet<Socket>(INIT_CLIENT_SET_SIZE));
+		clientUsernames = Collections.synchronizedSet(new HashSet<String>(INIT_CLIENT_SET_SIZE));
+		
+		stopQueue = new ArrayBlockingQueue<>(1);
+		
+		stopping = false;
 		
 		start();
 
@@ -60,6 +75,44 @@ public class Server extends Thread {
 		gui.setMessageDistributer(msgDist);
 		
 		setOpen(true);
+	}
+	
+	/**
+	 * Disconnects all connected clients and shuts down the server.
+	 */
+	public void close() {
+		stopping = true;
+		
+		try {
+			msgDist.putMessage("WARNING", "Server is shutting down!");
+			msgDist.stopCommunication();
+		} catch (InterruptedException e1) {
+			
+		}
+		
+		for (Socket client : connectedClients) {
+			try {
+				client.close();
+			} catch (IOException e) {
+				
+			}
+		}
+		
+		try {
+			msgDist.join();
+		} catch (InterruptedException e) {
+			gui.addMessage(Message.construct("ERROR", "Server thread was interrupted while waiting for message distributer to close!"));
+		}
+		
+		try {
+			server.close();
+		} catch (IOException e) {
+			gui.addMessage(Message.construct("WARNING", "An unknown error has occured while closing server socket!"));
+		}
+		
+		setOpen(false);
+
+		gui.addMessage(Message.construct("INFO", "Server has been closed!"));
 	}
 
 	public boolean isRunning() {
@@ -80,7 +133,6 @@ public class Server extends Thread {
 
 	@Override
 	public void run() {
-		setRunning(true);
 		gui.addMessage(Message.construct("INFO", "Server has been started!"));
 		
 		try {
@@ -101,7 +153,9 @@ public class Server extends Thread {
 		
 		gui.sendButton.setEnabled(true);
 
-		while (isRunning()) {
+		setRunning(true);
+		
+		while (!stopping) {
 			try {
 				client = server.accept();
 			} catch (SecurityException se) {
@@ -109,59 +163,17 @@ public class Server extends Thread {
 				
 				continue;
 			} catch (Exception e) {
-				gui.addMessage(Message.construct("WARNING", "Server can not accept new clients anymore!"));
-				setRunning(false);
+				if (!stopping) {
+					gui.addMessage(Message.construct("WARNING", "Server can not accept new clients anymore!"));
+				}
+				
 				break;
 			}
 
 			new ClientHandler(this, client, gui, msgDist).start();
 		}
-	}
-
-	/**
-	 * Disconnects all connected clients and shuts down the server.
-	 */
-	public void close() {
-		try {
-			msgDist.putMessage("SERVER", "Server is shutting down!");
-		} catch (InterruptedException e1) {
-			
-		}
 		
 		setRunning(false);
-		
-		try {
-			Thread.sleep(250);
-		} catch (InterruptedException e1) {
-			
-		}
-		
-		for (Socket client : connectedClients) {
-			try {
-				client.close();
-			} catch (IOException e) {
-				gui.addMessage(Message.construct("WARNING", "An unknown error has occured while closing the clients socket."));
-			}
-		}
-		
-		msgDist.interrupt();
-		
-		try {
-			msgDist.join();
-		} catch (InterruptedException e) {
-			gui.addMessage(Message.construct("ERROR", "Server thread was interrupted while waiting for message distributer to close!"));
-			// TODO What to do here?
-		}
-		
-		try {
-			server.close();
-		} catch (IOException e) {
-			gui.addMessage(Message.construct("WARNING", "An unknown error occured while closing main server socket!"));
-		}
-		
-		setOpen(false);
-
-		gui.addMessage(Message.construct("INFO", "Server has been closed!"));
 	}
 
 	public static void main(String[] args) {

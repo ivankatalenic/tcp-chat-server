@@ -7,16 +7,24 @@ import java.util.concurrent.BlockingQueue;
 
 public class MessageDistributer extends Thread {
 
-	static final int MSG_QUEUE_SIZE = 500;
+	static final int MSG_QUEUE_SIZE = 512;
+	static final String stopMessage = "fer.unizg.hr";
 
 	BlockingQueue<String> msgQueue;
 	Server server;
 	GUI gui;
+	
+	boolean stopping = false;
 
 	public MessageDistributer(Server server, GUI gui) {
 		this.server = server;
 		this.gui = gui;
 		msgQueue = new ArrayBlockingQueue<>(MSG_QUEUE_SIZE);
+	}
+	
+	void stopCommunication() throws InterruptedException {
+		stopping = true;
+		msgQueue.put(stopMessage);
 	}
 
 	public void putMessage(String author, String msg) throws InterruptedException {
@@ -24,7 +32,9 @@ public class MessageDistributer extends Thread {
 	}
 
 	public void putMessage(String msg) throws InterruptedException {
-		msgQueue.put(msg);
+		if (!stopping) {
+			msgQueue.put(msg);
+		}
 	}
 
 	@Override
@@ -40,6 +50,10 @@ public class MessageDistributer extends Thread {
 				msg = msgQueue.take();
 			} catch (InterruptedException e) {
 				// Signal that this thread should be terminated!
+				return;
+			}
+			
+			if (msg.equals(stopMessage)) {
 				return;
 			}
 
