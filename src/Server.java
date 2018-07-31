@@ -28,26 +28,28 @@ public class Server extends Thread {
 	MessageDistributer msgDist;
 	Set<Socket> connectedClients;
 	Set<String> clientUsernames;
-	
+
 	BlockingQueue<Object> stopQueue;
 
 	boolean running = false;
 	boolean open = false;
 	boolean stopping = false;
-	
+
 	int port;
 
-	GUI gui;
+	MessageHandler messageHandler;
 	Socket client;
 	ServerSocket server;
 
 	/**
-	 * Constructs the server object with specified GUI object which provides a method for displaying messages.
+	 * Constructs the server object with specified GUI object which provides a
+	 * method for displaying messages.
 	 * 
-	 * @param gui GUI object which provides a method for displaying messages.
+	 * @param messageHandler MessageHandler object which provides a method for
+	 *                       displaying messages.
 	 */
-	public Server(GUI gui) {
-		this.gui = gui;
+	public Server(MessageHandler messageHandler) {
+		this.messageHandler = messageHandler;
 	}
 
 	/**
@@ -55,64 +57,69 @@ public class Server extends Thread {
 	 * 
 	 * @param port Port on which the server is listening for connections.
 	 * 
-	 * @throws IllegalArgumentException If the port is not in the valid range [0 - 65535].
+	 * @throws IllegalArgumentException If the port is not in the valid range [0 -
+	 *                                  65535].
 	 */
 	public void open(int port) {
 		this.port = port;
-		
+
+		if (port < 0 || port > 65535) {
+			throw new IllegalArgumentException("Port is not in the valid range!");
+		}
+
 		connectedClients = Collections.synchronizedSet(new HashSet<Socket>(INIT_CLIENT_SET_SIZE));
 		clientUsernames = Collections.synchronizedSet(new HashSet<String>(INIT_CLIENT_SET_SIZE));
-		
+
 		stopQueue = new ArrayBlockingQueue<>(1);
-		
+
 		stopping = false;
-		
+
 		start();
 
-		msgDist = new MessageDistributer(this, gui);
+		msgDist = new MessageDistributer(this, messageHandler);
 		msgDist.start();
 
-		gui.setMessageDistributer(msgDist);
-		
 		setOpen(true);
 	}
-	
+
 	/**
 	 * Disconnects all connected clients and shuts down the server.
 	 */
 	public void close() {
 		stopping = true;
-		
+
 		try {
 			msgDist.putMessage("WARNING", "Server is shutting down!");
 			msgDist.stopCommunication();
 		} catch (InterruptedException e1) {
-			
+
 		}
-		
+
 		for (Socket client : connectedClients) {
 			try {
 				client.close();
 			} catch (IOException e) {
-				
+
 			}
 		}
-		
+
 		try {
 			msgDist.join();
 		} catch (InterruptedException e) {
-			gui.addMessage(Message.construct("ERROR", "Server thread was interrupted while waiting for message distributer to close!"));
+			messageHandler.displayMessage(Message.construct("ERROR",
+					"Server thread was interrupted while waiting for message distributer to close!"));
 		}
-		
+
 		try {
 			server.close();
 		} catch (IOException e) {
-			gui.addMessage(Message.construct("WARNING", "An unknown error has occured while closing server socket!"));
+			messageHandler.displayMessage(
+					Message.construct("WARNING", "An unknown error has occured while closing server socket!"));
 		}
-		
+
 		setOpen(false);
 
-		gui.addMessage(Message.construct("INFO", "Server has been closed!"));
+		messageHandler.displayMessage(Message.construct("INFO", "Server has been closed!"));
 	}
 
 	public boolean isRunning() {
@@ -131,52 +138,61 @@ public class Server extends Thread {
 		this.open = open;
 	}
 
+	public MessageDistributer getMsgDist() {
+		if (isOpen()) {
+			return msgDist;
+		} else {
+			return null;
+		}
+	}
+
 	@Override
 	public void run() {
-		gui.addMessage(Message.construct("INFO", "Server has been started!"));
-		
+		messageHandler.displayMessage(Message.construct("INFO", "Server has been started!"));
+
 		try {
 			server = new ServerSocket(port);
 		} catch (SocketException se) {
-			gui.addMessage(Message.construct("ERROR", "Can not open server socket!"));
+			messageHandler.displayMessage(Message.construct("ERROR", "Can not open server socket!"));
 
 			return;
 		} catch (IllegalArgumentException ae) {
-			gui.addMessage(Message.construct("ERROR", "Bad port!"));
+			messageHandler.displayMessage(Message.construct("ERROR", "Bad port!"));
 
 			return;
 		} catch (Exception e) {
-			gui.addMessage(Message.construct("ERROR", "Unknown error!"));
+			messageHandler.displayMessage(Message.construct("ERROR", "Unknown error!"));
 
 			return;
 		}
-		
-		gui.sendButton.setEnabled(true);
 
 		setRunning(true);
-		
+
 		while (!stopping) {
 			try {
 				client = server.accept();
 			} catch (SecurityException se) {
-				gui.addMessage(Message.construct("ERROR", "Security manager does not accept connection from the client."));
-				
+				messageHandler.displayMessage(
+						Message.construct("ERROR", "Security manager does not accept connection from the client."));
+
 				continue;
 			} catch (Exception e) {
 				if (!stopping) {
-					gui.addMessage(Message.construct("WARNING", "Server can not accept new clients anymore!"));
+					messageHandler
+							.displayMessage(Message.construct("WARNING", "Server can not accept new clients anymore!"));
 				}
-				
+
 				break;
 			}
 
-			new ClientHandler(this, client, gui, msgDist).start();
+			new ClientHandler(this, client, messageHandler, msgDist).start();
 		}
-		
+
 		setRunning(false);
 	}
 
 	public static void main(String[] args) {
+
 		// Setting Nimbus Look&Feel.
 		try {
 			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
@@ -186,7 +202,7 @@ public class Server extends Thread {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+
 		}
 
 		// Starting the GUI.
@@ -198,7 +214,6 @@ public class Server extends Thread {
 				}
 			});
 		} catch (InvocationTargetException | InterruptedException e1) {
-			// TODO Auto-generated catch block
 			System.exit(-1);
 		}
 	}

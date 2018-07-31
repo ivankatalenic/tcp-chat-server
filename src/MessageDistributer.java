@@ -12,13 +12,13 @@ public class MessageDistributer extends Thread {
 
 	BlockingQueue<String> msgQueue;
 	Server server;
-	GUI gui;
+	MessageHandler messageHandler;
 	
 	boolean stopping = false;
 
-	public MessageDistributer(Server server, GUI gui) {
+	public MessageDistributer(Server server, MessageHandler messageHandler) {
 		this.server = server;
-		this.gui = gui;
+		this.messageHandler = messageHandler;
 		msgQueue = new ArrayBlockingQueue<>(MSG_QUEUE_SIZE);
 	}
 	
@@ -83,7 +83,7 @@ public class MessageDistributer extends Thread {
 				}
 			}
 
-			gui.addMessage(msg);
+			messageHandler.displayMessage(msg);
 		}
 	}
 }

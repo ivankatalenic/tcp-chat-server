@@ -5,7 +5,7 @@ import java.awt.event.KeyEvent;
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
 
-public class GUI extends JFrame {
+public class GUI extends JFrame implements MessageHandler {
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -81,7 +81,7 @@ public class GUI extends JFrame {
 		// Events listeners
 		openServerButton.addActionListener((eventObject) -> {
 			boolean portParsedCorrectly = true;
-			boolean portValidRange = true;
+			boolean portValidRange = false;
 			
 			int port = -1;
 			
@@ -103,12 +103,15 @@ public class GUI extends JFrame {
 				server = new Server(this);
 				server.open(port);
 				
+				msgDist = server.getMsgDist();
+				
 				closeServerButton.setEnabled(true);
 				sendButton.setEnabled(true);
 				
 				messageField.requestFocusInWindow();
+				sendButton.setEnabled(true);
 			} else {
-				addMessage(Message.construct("ERROR", "Please enter valid port!"));
+				displayMessage(Message.construct("ERROR", "Please enter valid port!"));
 				portField.setText("");
 			}
 		});
@@ -169,7 +172,7 @@ public class GUI extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				if (server == null || !server.isOpen()) {
 					boolean portParsedCorrectly = true;
-					boolean portValidRange = true;
+					boolean portValidRange = false;
 					
 					int port = -1;
 					
@@ -191,12 +194,14 @@ public class GUI extends JFrame {
 						server = new Server(secondThis);
 						server.open(port);
 						
+						msgDist = server.getMsgDist();
+						
 						closeServerButton.setEnabled(true);
 						sendButton.setEnabled(true);
 						
 						messageField.requestFocusInWindow();
 					} else {
-						addMessage(Message.construct("ERROR", "Please enter valid port!"));
+						displayMessage(Message.construct("ERROR", "Please enter valid port!"));
 						portField.setText("");
 					}
 				}
@@ -205,7 +210,8 @@ public class GUI extends JFrame {
 		});
 	}
 	
-	public void addMessage(String msg) {
+	@Override
+	public void displayMessage(String msg) {
 		SwingUtilities.invokeLater(() -> {
 			chatHistoryArea.append(msg + "\n");
 		});

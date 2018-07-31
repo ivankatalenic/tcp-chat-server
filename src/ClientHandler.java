@@ -9,7 +9,7 @@ public class ClientHandler extends Thread {
 
 	Server server;
 	Socket client;
-	GUI gui;
+	MessageHandler messageHandler;
 	MessageDistributer msgDist;
 
 	DataInputStream input;
@@ -17,10 +17,10 @@ public class ClientHandler extends Thread {
 
 	String username;
 
-	public ClientHandler(Server server, Socket client, GUI gui, MessageDistributer msgDist) {
+	public ClientHandler(Server server, Socket client, MessageHandler messageHandler, MessageDistributer msgDist) {
 		this.server = server;
 		this.client = client;
-		this.gui = gui;
+		this.messageHandler = messageHandler;
 		this.msgDist = msgDist;
 	}
 
@@ -53,7 +53,7 @@ public class ClientHandler extends Thread {
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 			}
-			gui.addMessage(Message.construct("INFO", "Client with IP address " + client.getInetAddress().toString()
+			messageHandler.displayMessage(Message.construct("INFO", "Client with IP address " + client.getInetAddress().toString()
 					+ " has failed to properly connect!"));
 
 			return;
@@ -69,7 +69,7 @@ public class ClientHandler extends Thread {
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 			}
-			gui.addMessage(Message.construct("INFO", "Client with IP address " + client.getInetAddress().toString()
+			messageHandler.displayMessage(Message.construct("INFO", "Client with IP address " + client.getInetAddress().toString()
 					+ " has failed to properly connect!"));
 
 			return;
@@ -79,7 +79,7 @@ public class ClientHandler extends Thread {
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 			}
-			gui.addMessage(Message.construct("INFO", "Client with IP address " + client.getInetAddress().toString()
+			messageHandler.displayMessage(Message.construct("INFO", "Client with IP address " + client.getInetAddress().toString()
 					+ " has failed to properly connect!"));
 
 			return;
@@ -101,7 +101,7 @@ public class ClientHandler extends Thread {
 
 			}
 
-			gui.addMessage(Message.construct("INFO", "Client with IP address " + client.getInetAddress().toString()
+			messageHandler.displayMessage(Message.construct("INFO", "Client with IP address " + client.getInetAddress().toString()
 					+ " has failed to properly connect!"));
 
 			return;
@@ -117,7 +117,7 @@ public class ClientHandler extends Thread {
 			// TODO Auto-generated catch block
 		}
 
-		gui.addMessage(
+		messageHandler.displayMessage(
 				Message.construct("INFO", "Client " + username + " has connected from " + client.getInetAddress()));
 
 		while (true) {
