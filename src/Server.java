@@ -10,12 +10,6 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
-
-import java.lang.reflect.InvocationTargetException;
-
 /**
  * Class used for connecting clients.
  * 
@@ -106,20 +100,19 @@ public class Server extends Thread {
 		try {
 			msgDist.join();
 		} catch (InterruptedException e) {
-			messageHandler.displayMessage(Message.construct("ERROR",
-					"Server thread was interrupted while waiting for message distributer to close!"));
+			messageHandler.displayMessage("ERROR",
+					"Server thread was interrupted while waiting for message distributer to close!");
 		}
 
 		try {
 			server.close();
 		} catch (IOException e) {
-			messageHandler.displayMessage(
-					Message.construct("WARNING", "An unknown error has occured while closing server socket!"));
+			messageHandler.displayMessage("WARNING", "An unknown error has occured while closing server socket!");
 		}
 
 		setOpen(false);
 
-		messageHandler.displayMessage(Message.construct("INFO", "Server has been closed!"));
+		messageHandler.displayMessage("INFO", "Server has been closed!");
 	}
 
 	public boolean isRunning() {
@@ -148,20 +141,20 @@ public class Server extends Thread {
 
 	@Override
 	public void run() {
-		messageHandler.displayMessage(Message.construct("INFO", "Server has been started!"));
+		messageHandler.displayMessage("INFO", "Server has been started!");
 
 		try {
 			server = new ServerSocket(port);
 		} catch (SocketException se) {
-			messageHandler.displayMessage(Message.construct("ERROR", "Can not open server socket!"));
+			messageHandler.displayMessage("ERROR", "Can not open server socket!");
 
 			return;
 		} catch (IllegalArgumentException ae) {
-			messageHandler.displayMessage(Message.construct("ERROR", "Bad port!"));
+			messageHandler.displayMessage("ERROR", "Bad port!");
 
 			return;
 		} catch (Exception e) {
-			messageHandler.displayMessage(Message.construct("ERROR", "Unknown error!"));
+			messageHandler.displayMessage("ERROR", "Unknown error!");
 
 			return;
 		}
@@ -172,14 +165,12 @@ public class Server extends Thread {
 			try {
 				client = server.accept();
 			} catch (SecurityException se) {
-				messageHandler.displayMessage(
-						Message.construct("ERROR", "Security manager does not accept connection from the client."));
+				messageHandler.displayMessage("ERROR", "Security manager does not accept connection from the client.");
 
 				continue;
 			} catch (Exception e) {
 				if (!stopping) {
-					messageHandler
-							.displayMessage(Message.construct("WARNING", "Server can not accept new clients anymore!"));
+					messageHandler.displayMessage("WARNING", "Server can not accept new clients anymore!");
 				}
 
 				break;
@@ -189,32 +180,5 @@ public class Server extends Thread {
 		}
 
 		setRunning(false);
-	}
-
-	public static void main(String[] args) {
-
-		// Setting Nimbus Look&Feel.
-		try {
-			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-				if ("Nimbus".equals(info.getName())) {
-					UIManager.setLookAndFeel(info.getClassName());
-					break;
-				}
-			}
-		} catch (Exception e) {
-
-		}
-
-		// Starting the GUI.
-		try {
-			SwingUtilities.invokeAndWait(new Runnable() {
-				@Override
-				public void run() {
-					new GUI();
-				}
-			});
-		} catch (InvocationTargetException | InterruptedException e1) {
-			System.exit(-1);
-		}
 	}
 }
