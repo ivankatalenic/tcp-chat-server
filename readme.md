@@ -1,6 +1,4 @@
-# tcp-server
-
-## Simple TCP-based chat server for UTF-8 encoded text messages that supports multiple clients.
+## Simple chat server that supports multiple clients.
 
 ### Protocol for communicating with the server is as follows:
 1. Establish a TCP connection with the server.
