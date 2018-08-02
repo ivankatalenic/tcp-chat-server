@@ -7,13 +7,13 @@ import java.net.ServerSocket;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
 /**
- * Class used for connecting clients.
+ * Class used for accepting clients' connections and assigning a client handler
+ * for each one.
  * 
  * @author Ivan Katalenić
+ * 
  */
 public class Server extends Thread {
 
@@ -22,8 +22,6 @@ public class Server extends Thread {
 	MessageDistributer msgDist;
 	Set<Socket> connectedClients;
 	Set<String> clientUsernames;
-
-	BlockingQueue<Object> stopQueue;
 
 	boolean running = false;
 	boolean open = false;
@@ -36,8 +34,8 @@ public class Server extends Thread {
 	ServerSocket server;
 
 	/**
-	 * Constructs the server object with specified GUI object which provides a
-	 * method for displaying messages.
+	 * Constructs the server object with specified MessageHandler object for
+	 * displaying messages.
 	 * 
 	 * @param messageHandler MessageHandler object which provides a method for
 	 *                       displaying messages.
@@ -63,8 +61,6 @@ public class Server extends Thread {
 
 		connectedClients = Collections.synchronizedSet(new HashSet<Socket>(INIT_CLIENT_SET_SIZE));
 		clientUsernames = Collections.synchronizedSet(new HashSet<String>(INIT_CLIENT_SET_SIZE));
-
-		stopQueue = new ArrayBlockingQueue<>(1);
 
 		stopping = false;
 
@@ -114,7 +110,7 @@ public class Server extends Thread {
 
 		messageHandler.displayMessage("INFO", "Server has been closed!");
 	}
-
+	
 	public boolean isRunning() {
 		return running;
 	}

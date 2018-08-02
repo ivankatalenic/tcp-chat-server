@@ -1,10 +1,19 @@
 import java.io.DataOutputStream;
 import java.io.IOException;
+
 import java.net.Socket;
+
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+/**
+ * Class used for accepting and distributing messages to all clients connected
+ * to the server.
+ * 
+ * @author Ivan Katalenić
+ *
+ */
 public class MessageDistributer extends Thread {
 
 	static final int MSG_QUEUE_SIZE = 512;
@@ -13,7 +22,7 @@ public class MessageDistributer extends Thread {
 	BlockingQueue<String> msgQueue;
 	Server server;
 	MessageHandler messageHandler;
-	
+
 	boolean stopping = false;
 
 	public MessageDistributer(Server server, MessageHandler messageHandler) {
@@ -21,16 +30,37 @@ public class MessageDistributer extends Thread {
 		this.messageHandler = messageHandler;
 		msgQueue = new ArrayBlockingQueue<>(MSG_QUEUE_SIZE);
 	}
-	
+
+	/**
+	 * Stops the message distributer from distributing messages to connected
+	 * clients.
+	 * 
+	 * @throws InterruptedException
+	 */
 	void stopCommunication() throws InterruptedException {
 		stopping = true;
 		msgQueue.put(stopMessage);
 	}
 
+	/**
+	 * Method which formats the message with Message.construct function and sends
+	 * that message to all connected clients.
+	 * 
+	 * @param author Author of the message.
+	 * @param msg    Message which will be sent to all clients.
+	 * @throws InterruptedException
+	 */
 	public void putMessage(String author, String msg) throws InterruptedException {
 		putMessage(Message.construct(author, msg));
 	}
 
+	/**
+	 * Puts the message in the queue for distribution to connected clients. This
+	 * message is sent to all clients.
+	 * 
+	 * @param msg Message which is sent to all clients.
+	 * @throws InterruptedException
+	 */
 	public void putMessage(String msg) throws InterruptedException {
 		if (!stopping) {
 			msgQueue.put(msg);
@@ -52,14 +82,14 @@ public class MessageDistributer extends Thread {
 				// Signal that this thread should be terminated!
 				return;
 			}
-			
+
 			if (msg.equals(stopMessage)) {
 				return;
 			}
 
 			// Sends messages to all clients connected!
-			Iterator<Socket> it = server.connectedClients.iterator();
 			synchronized (server.connectedClients) {
+				Iterator<Socket> it = server.connectedClients.iterator();
 				while (it.hasNext()) {
 					Socket client = it.next();
 					if (client.isClosed()) {
