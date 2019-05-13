@@ -1,8 +1,8 @@
-# Simple chat server that supports multiple clients.
+# Simple chat server that supports multiple clients
 
 ## Building the application
 
-To build the application build tool [Maven](https://maven.apache.org/) is needed. 
+To build the application a build tool [Maven](https://maven.apache.org/) is needed. 
 
 To build an executable jar file, enter the following: `mvn clean compile package`. 
 After build process is complete resulting jar file will be placed in _target_ directory.
