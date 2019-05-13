@@ -1,3 +1,5 @@
+package chat;
+
 /**
  * Interface which declares a method which is used for displaying strings.
  * 

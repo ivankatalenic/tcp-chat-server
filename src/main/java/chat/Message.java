@@ -1,3 +1,5 @@
+package chat;
+
 /**
  * Interface which provides function for constructing formated messages.
  * 
